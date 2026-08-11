@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>検索サイト</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .container {
+            background: white;
+            padding: 60px;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            max-width: 600px;
+            width: 90%;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 40px;
+            font-size: 32px;
+        }
+        
+        .search-container {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 40px;
+        }
+        
+        .search-input {
+            flex: 1;
+            padding: 15px;
+            font-size: 16px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            transition: border-color 0.3s;
+        }
+        
+        .search-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .search-button {
+            padding: 15px 30px;
+            font-size: 16px;
+            font-weight: bold;
+            background-color: #4285f4;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        .search-button:hover {
+            background-color: #357ae8;
+        }
+        
+        .search-button:active {
+            transform: scale(0.98);
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        .video-button {
+            padding: 15px 40px;
+            font-size: 18px;
+            font-weight: bold;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            width: 200px;
+        }
+        
+        .youtube-button {
+            background-color: #ff0000;
+            color: white;
+        }
+        
+        .youtube-button:hover {
+            background-color: #cc0000;
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(255, 0, 0, 0.4);
+        }
+        
+        .niconico-button {
+            background-color: #f2c211;
+            color: #333;
+        }
+        
+        .niconico-button:hover {
+            background-color: #e6b800;
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(242, 194, 17, 0.4);
+        }
+        
+        .video-button:active {
+            transform: translateY(-1px);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 検索サイト</h1>
+        
+        <!-- 検索ボックス -->
+        <div class="search-container">
+            <input 
+                type="text" 
+                class="search-input" 
+                placeholder="検索キーワードを入力..."
+                id="searchInput"
+            >
+            <button class="search-button" onclick="googleSearch()">Google</button>
+        </div>
+        
+        <!-- ビデオサイトボタン -->
+        <div class="button-group">
+            <button class="video-button youtube-button" onclick="goToYouTube()">
+                ▶ YouTube
+            </button>
+            <button class="video-button niconico-button" onclick="goToNicoNico()">
+                🎬 ニコニコ
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Google検索
+        function googleSearch() {
+            const searchText = document.getElementById('searchInput').value;
+            if (searchText.trim()) {
+                window.open(`https://www.google.com/search?q=${encodeURIComponent(searchText)}`);
+            } else {
+                alert('検索キーワードを入力してください');
+            }
+        }
+        
+        // YouTube へ移動
+        function goToYouTube() {
+            window.open('https://www.youtube.com/', '_blank');
+        }
+        
+        // ニコニコ動画へ移動
+        function goToNicoNico() {
+            window.open('https://www.nicovideo.jp/', '_blank');
+        }
+        
+        // Enterキーで検索できるように
+        document.getElementById('searchInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                googleSearch();
+            }
+        });
+    </script>
+</body>
+</html>
