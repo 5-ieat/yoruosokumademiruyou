@@ -121,6 +121,12 @@
             box-shadow: 0 0 8px rgba(0, 0, 0, 0.2);
         }
         
+        .timer-input:disabled {
+            background: rgba(255, 255, 255, 0.5);
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+        
         .timer-label {
             color: white;
             font-size: 12px;
@@ -161,6 +167,12 @@
             background-color: #27ae60;
         }
         
+        .timer-start:disabled {
+            background-color: #95a5a6;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+        
         .timer-pause {
             background-color: #f39c12;
         }
@@ -169,12 +181,24 @@
             background-color: #e67e22;
         }
         
+        .timer-pause:disabled {
+            background-color: #95a5a6;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+        
         .timer-reset {
             background-color: #e74c3c;
         }
         
         .timer-reset:hover {
             background-color: #c0392b;
+        }
+        
+        .timer-reset:disabled {
+            background-color: #95a5a6;
+            cursor: not-allowed;
+            opacity: 0.6;
         }
         
         .custom-site-section {
@@ -322,9 +346,47 @@
         .custom-site-delete:hover {
             background: #ff5252;
         }
+
+        /* スクリーン点灯状態アイコン */
+        .wake-lock-indicator {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            display: none;
+            z-index: 1000;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .wake-lock-indicator.active {
+            display: flex;
+        }
+
+        .wake-lock-dot {
+            width: 8px;
+            height: 8px;
+            background: #4caf50;
+            border-radius: 50%;
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+            0%, 49%, 100% { opacity: 1; }
+            50%, 99% { opacity: 0.3; }
+        }
     </style>
 </head>
 <body>
+    <div class="wake-lock-indicator" id="wakeLockIndicator">
+        <div class="wake-lock-dot"></div>
+        <span>スクリーン点灯中</span>
+    </div>
+
     <div class="container">
         
         <!-- 検索ボックス -->
@@ -341,7 +403,7 @@
         <!-- タイマーセクション -->
         <div class="timer-section">
             <h3>⏱️ タイマー</h3>
-            <div class="timer-display" id="timerDisplay">00:00</div>
+            <div class="timer-display" id="timerDisplay">00:00:00</div>
             <div class="timer-input-group">
                 <div class="timer-input-item">
                     <label class="timer-label">時</label>
@@ -367,9 +429,9 @@
                 </div>
             </div>
             <div class="timer-button-group">
-                <button class="timer-button timer-start" onclick="startTimer()">開始</button>
-                <button class="timer-button timer-pause" onclick="pauseTimer()">一時停止</button>
-                <button class="timer-button timer-reset" onclick="resetTimer()">リセット</button>
+                <button class="timer-button timer-start" id="startBtn" onclick="startTimer()">開始</button>
+                <button class="timer-button timer-pause" id="pauseBtn" onclick="pauseTimer()" disabled>一時停止</button>
+                <button class="timer-button timer-reset" id="resetBtn" onclick="resetTimer()">リセット</button>
             </div>
         </div>
         
@@ -404,6 +466,40 @@
         let timerInterval = null;
         let timerSeconds = 0;
         let timerRunning = false;
+        let wakeLock = null;
+
+        // Screen Wake Lock API対応
+        async function requestWakeLock() {
+            try {
+                if ('wakeLock' in navigator) {
+                    wakeLock = await navigator.wakeLock.request('screen');
+                    document.getElementById('wakeLockIndicator').classList.add('active');
+                    console.log('Wake Lock acquired');
+                }
+            } catch (err) {
+                console.error('Wake Lock request failed:', err);
+            }
+        }
+
+        // Wake Lock解除
+        function releaseWakeLock() {
+            if (wakeLock) {
+                wakeLock.release().then(() => {
+                    wakeLock = null;
+                    document.getElementById('wakeLockIndicator').classList.remove('active');
+                    console.log('Wake Lock released');
+                });
+            }
+        }
+
+        // ページが非表示になった時に Wake Lock を解除
+        document.addEventListener('visibilitychange', async () => {
+            if (document.hidden) {
+                releaseWakeLock();
+            } else if (timerRunning) {
+                await requestWakeLock();
+            }
+        });
 
         // タイマー開始
         function startTimer() {
@@ -421,6 +517,17 @@
             }
             
             timerRunning = true;
+            
+            // ボタン状態を更新
+            document.getElementById('timerHours').disabled = true;
+            document.getElementById('timerMinutes').disabled = true;
+            document.getElementById('startBtn').disabled = true;
+            document.getElementById('pauseBtn').disabled = false;
+            document.getElementById('resetBtn').disabled = true;
+            
+            // Wake Lock リクエスト
+            requestWakeLock();
+            
             timerInterval = setInterval(() => {
                 timerSeconds--;
                 updateTimerDisplay();
@@ -428,7 +535,16 @@
                 if (timerSeconds <= 0) {
                     clearInterval(timerInterval);
                     timerRunning = false;
+                    releaseWakeLock();
                     alert('タイマー終了！');
+                    
+                    // ボタン状態をリセット
+                    document.getElementById('timerHours').disabled = false;
+                    document.getElementById('timerMinutes').disabled = false;
+                    document.getElementById('startBtn').disabled = false;
+                    document.getElementById('pauseBtn').disabled = true;
+                    document.getElementById('resetBtn').disabled = false;
+                    
                     resetTimer();
                 }
             }, 1000);
@@ -439,6 +555,12 @@
             if (timerInterval) {
                 clearInterval(timerInterval);
                 timerRunning = false;
+                releaseWakeLock();
+                
+                // ボタン状態を更新
+                document.getElementById('startBtn').disabled = false;
+                document.getElementById('pauseBtn').disabled = true;
+                document.getElementById('resetBtn').disabled = false;
             }
         }
 
@@ -449,8 +571,16 @@
             }
             timerSeconds = 0;
             timerRunning = false;
+            releaseWakeLock();
+            
             document.getElementById('timerHours').value = 0;
             document.getElementById('timerMinutes').value = 0;
+            document.getElementById('timerHours').disabled = false;
+            document.getElementById('timerMinutes').disabled = false;
+            document.getElementById('startBtn').disabled = false;
+            document.getElementById('pauseBtn').disabled = true;
+            document.getElementById('resetBtn').disabled = false;
+            
             updateTimerDisplay();
         }
 
