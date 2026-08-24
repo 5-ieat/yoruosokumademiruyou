@@ -3,6 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#667eea">
+    <meta name="description" content="スマホで夜遅くまで動画を見るのを防ぐためのタイマーと検索サイト">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="タイマー">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%23667eea' width='192' height='192'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-size='100' font-weight='bold' fill='white' font-family='Arial'>⏱</text></svg>">
+    <link rel="manifest" href="manifest.json">
     <title>検索サイト</title>
     <style>
         * {
@@ -382,12 +389,80 @@
             0%, 49%, 100% { opacity: 1; }
             50%, 99% { opacity: 0.3; }
         }
+
+        /* PWA インストール案内 */
+        .pwa-install-prompt {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background: white;
+            padding: 15px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            display: none;
+            flex-direction: column;
+            gap: 10px;
+            max-width: 300px;
+            z-index: 999;
+        }
+
+        .pwa-install-prompt.show {
+            display: flex;
+        }
+
+        .pwa-install-prompt p {
+            margin: 0;
+            font-size: 14px;
+            color: #333;
+        }
+
+        .pwa-install-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .pwa-install-btn, .pwa-install-dismiss {
+            flex: 1;
+            padding: 8px 12px;
+            border: none;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .pwa-install-btn {
+            background-color: #667eea;
+            color: white;
+        }
+
+        .pwa-install-btn:hover {
+            background-color: #5568d3;
+        }
+
+        .pwa-install-dismiss {
+            background-color: #e0e0e0;
+            color: #666;
+        }
+
+        .pwa-install-dismiss:hover {
+            background-color: #d0d0d0;
+        }
     </style>
 </head>
 <body>
     <div class="wake-lock-indicator" id="wakeLockIndicator">
         <div class="wake-lock-dot"></div>
         <span>スクリーン点灯中</span>
+    </div>
+
+    <div class="pwa-install-prompt" id="pwaInstallPrompt">
+        <p>このアプリをホーム画面に追加しますか？</p>
+        <div class="pwa-install-buttons">
+            <button class="pwa-install-btn" id="pwaInstallBtn">インストール</button>
+            <button class="pwa-install-dismiss" id="pwaDismissBtn">キャンセル</button>
+        </div>
     </div>
 
     <div class="container">
@@ -470,6 +545,43 @@
         let timerSeconds = 0;
         let timerRunning = false;
         let wakeLock = null;
+        let deferredPrompt = null;
+
+        // Service Worker 登録
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js')
+                .then(registration => {
+                    console.log('Service Worker registered:', registration);
+                })
+                .catch(error => {
+                    console.error('Service Worker registration failed:', error);
+                });
+        }
+
+        // PWA インストール案内
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            document.getElementById('pwaInstallPrompt').classList.add('show');
+        });
+
+        document.getElementById('pwaInstallBtn').addEventListener('click', () => {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                deferredPrompt.userChoice.then((choiceResult) => {
+                    if (choiceResult.outcome === 'accepted') {
+                        console.log('PWA installed');
+                    }
+                    deferredPrompt = null;
+                    document.getElementById('pwaInstallPrompt').classList.remove('show');
+                });
+            }
+        });
+
+        document.getElementById('pwaDismissBtn').addEventListener('click', () => {
+            deferredPrompt = null;
+            document.getElementById('pwaInstallPrompt').classList.remove('show');
+        });
 
         // Screen Wake Lock API対応
         async function requestWakeLock() {
@@ -671,7 +783,7 @@
             loadCustomSites();
         }
         
-        // カスタムサイトへ移動
+        // カスタムサイ���へ移動
         function goToCustomSite(url) {
             window.open(url, '_blank');
         }
