@@ -728,15 +728,6 @@
               .then(() => console.log("Service Worker registered"))
               .catch((err) => console.log("Service Worker registration failed:", err));
           });
-        }
-
-        let deferredPrompt = null;
-        const installButton = document.getElementById("installButton");
-
-        window.addEventListener("beforeinstallprompt", (event) => {
-          event.preventDefault();
-          deferredPrompt = event;
-          installButton.style.display = "inline-block";
         });
         
         // ページ読み込み時にカスタムサイトを表示
